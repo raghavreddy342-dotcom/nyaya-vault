@@ -6,7 +6,13 @@
     <main class="main-content">
         <div class="page-header">
             <h1>Dashboard</h1>
-            <p>Welcome back, <strong>{{ session.username }}</strong> ({{ session.role }})</p>
+            <p>Welcome back, <strong>{{ session.username }}</strong>
+                {% if session.role == 'admin' %}
+                <span class="badge badge-danger">ADMIN</span>
+                {% else %}
+                <span class="badge badge-info">OFFICER</span>
+                {% endif %}
+            </p>
         </div>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -26,20 +32,44 @@
                 <div class="value">{{ total_docs }}</div>
                 <div class="label">Total Documents</div>
             </div>
+            {% if session.role == 'admin' %}
+            <div class="stat-card">
+                <div class="icon">👥</div>
+                <div class="value">{{ total_users }}</div>
+                <div class="label">Registered Users</div>
+            </div>
             <div class="stat-card">
                 <div class="icon">🔒</div>
                 <div class="value">AES-256</div>
                 <div class="label">Encryption Standard</div>
+            </div>
+            {% else %}
+            <div class="stat-card">
+                <div class="icon">📤</div>
+                <div class="value">{{ my_uploads }}</div>
+                <div class="label">My Uploads</div>
             </div>
             <div class="stat-card">
                 <div class="icon">🛡️</div>
                 <div class="value">SHA-256</div>
                 <div class="label">Hash Algorithm</div>
             </div>
+            {% endif %}
         </div>
 
+        {% if session.role == 'admin' %}
+        <!-- Admin: system-wide quick actions -->
         <div class="card">
-            <h2>📋 Recent Activity</h2>
+            <h2>⚡ Quick Actions</h2>
+            <div class="flex gap-1" style="flex-wrap:wrap;">
+                <a href="{{ url_for('cases') }}" class="btn btn-primary">➕ Create New Case</a>
+                <a href="{{ url_for('audit') }}" class="btn btn-secondary">📋 View Audit Trail</a>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="card">
+            <h2>📋 {% if session.role == 'admin' %}System-Wide Activity{% else %}Your Recent Activity{% endif %}</h2>
             {% if recent_activities %}
             <div class="table-wrapper">
                 <table>

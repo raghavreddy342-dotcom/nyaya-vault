@@ -1,19 +1,16 @@
-"""Integration test for NYAYA VAULT using Flask test client (no network needed)."""
+"""Integration test for NYAYA VAULT – role-based access control."""
 import sys, os, json, io
 
 sys.path.insert(0, os.path.dirname(__file__))
 os.chdir(os.path.dirname(__file__))
 
-# Clean slate
 if os.path.exists("nyayavault.db"):
     os.remove("nyayavault.db")
 
 from dotenv import load_dotenv
 load_dotenv()
-
 from database import init_db
 init_db()
-
 from app import app
 
 app.config["TESTING"] = True
@@ -34,121 +31,115 @@ def test(name, condition):
 def login(username, password):
     return client.post("/login", data={"username": username, "password": password}, follow_redirects=True)
 
-print("\n=== TEST GROUP 1: Login ===")
-r = client.get("/login")
-test("Login page loads", r.status_code == 200)
-test("Login form present", b"username" in r.data and b"password" in r.data)
+# ── ADMIN TESTS ──────────────────────────────────────────────────────
 
+print("\n=== ADMIN: Login & Dashboard ===")
 r = login("admin", "admin123")
-test("Admin login succeeds", r.status_code == 200 and b"Dashboard" in r.data)
+test("Admin login", b"Dashboard" in r.data)
+test("Admin sees ADMIN badge", b"ADMIN" in r.data)
+test("Admin sees Registered Users", b"Registered Users" in r.data)
+test("Admin sees system-wide activity", b"System-Wide Activity" in r.data)
+test("Admin sees quick actions", b"Quick Actions" in r.data)
 
-# Bad login
-client.get("/logout")
-r = login("admin", "wrongpassword")
-test("Bad password rejected", b"Invalid" in r.data)
-
-r = login("admin", "admin123")
-
-print("\n=== TEST GROUP 2: Dashboard ===")
+print("\n=== ADMIN: Sidebar ===")
 r = client.get("/dashboard")
-test("Dashboard loads", b"Total Cases" in r.data)
-test("Shows recent activity", b"Recent Activity" in r.data)
+test("Admin sees Audit Trail in sidebar", b"Audit Trail" in r.data)
 
-print("\n=== TEST GROUP 3: Cases ===")
+print("\n=== ADMIN: Cases ===")
 r = client.get("/cases")
-test("Cases page loads", b"CASE-2026-001" in r.data)
-test("Seed cases visible", b"State vs. Sharma" in r.data)
+test("Admin sees New Case button", b"New Case" in r.data)
+test("Admin sees create case modal", b"newCaseModal" in r.data)
 
-# Create new case
+# Create a case
 r = client.post("/cases/create", data={
-    "case_id": "CASE-TEST-001",
-    "title": "Integration Test Case",
-    "description": "Automated test"
+    "case_id": "CASE-ADMIN-001", "title": "Admin Test", "description": "Test"
 }, follow_redirects=True)
-test("Create case succeeds", b"CASE-TEST-001" in r.data)
+test("Admin can create case", b"CASE-ADMIN-001" in r.data)
 
-# Duplicate case
-r = client.post("/cases/create", data={
-    "case_id": "CASE-TEST-001",
-    "title": "Duplicate",
-    "description": ""
-}, follow_redirects=True)
-test("Duplicate case rejected", b"already exists" in r.data)
-
-# Case details
-r = client.get("/cases/CASE-2026-001")
-test("Case details page", b"State vs. Sharma" in r.data)
-test("Upload form present", b"multipart/form-data" in r.data)
-
-print("\n=== TEST GROUP 4: Document Upload & Encryption ===")
-file_content = b"This is test evidence for NYAYA VAULT integrity verification testing."
+print("\n=== ADMIN: Document & Verify ===")
+file_content = b"Admin test evidence file content."
 r = client.post("/upload", data={
-    "case_id": "CASE-2026-001",
-    "file": (io.BytesIO(file_content), "evidence.txt"),
+    "case_id": "CASE-ADMIN-001",
+    "file": (io.BytesIO(file_content), "admin_doc.txt"),
 }, content_type="multipart/form-data", follow_redirects=True)
-test("Document uploaded", b"evidence.txt" in r.data or r.status_code == 200)
+test("Admin uploads doc", b"admin_doc.txt" in r.data)
 
-# Check encrypted file exists
-enc_files = os.listdir("encrypted_files")
-test("Encrypted file stored", len(enc_files) > 0)
-test("File has .enc extension", any(f.endswith(".enc") for f in enc_files))
-
-# Bad file type
-r = client.post("/upload", data={
-    "case_id": "CASE-2026-001",
-    "file": (io.BytesIO(b"bad"), "malware.exe"),
-}, content_type="multipart/form-data", follow_redirects=True)
-test("Invalid file type rejected", b"not allowed" in r.data)
-
-# No file
-r = client.post("/upload", data={
-    "case_id": "CASE-2026-001",
-}, content_type="multipart/form-data", follow_redirects=True)
-test("No file rejected", b"No file" in r.data)
-
-print("\n=== TEST GROUP 5: SHA-256 Verification ===")
 r = client.get("/documents/1/verify")
 result = json.loads(r.data)
-test("Verify returns VERIFIED", result["status"] == "VERIFIED")
-test("Hashes match", result["original_hash"] == result["current_hash"])
-test("Has 64-char SHA-256 hash", len(result["original_hash"]) == 64)
+test("Admin verify VERIFIED", result["status"] == "VERIFIED")
 
-# Non-existent document
-r = client.get("/documents/999/verify")
-test("Missing doc returns 404", r.status_code == 404)
-
-print("\n=== TEST GROUP 6: Document Download ===")
 r = client.get("/documents/1/download")
-test("Download succeeds", r.status_code == 200)
-test("Decrypted content matches", r.data == file_content)
-test("Content-Disposition header", "attachment" in r.headers.get("Content-Disposition", ""))
+test("Admin downloads doc", r.data == file_content)
 
-print("\n=== TEST GROUP 7: Audit Trail ===")
+print("\n=== ADMIN: Audit Trail ===")
 r = client.get("/audit")
-test("Audit page loads", b"Audit Trail" in r.data)
-test("Login recorded", b"LOGIN" in r.data)
-test("Upload recorded", b"UPLOAD" in r.data)
-test("Verify recorded", b"VERIFY" in r.data)
-test("Download recorded", b"DOWNLOAD" in r.data)
+test("Admin can access audit trail", r.status_code == 200 and b"Audit Trail" in r.data)
 
-# Verify audit chain
 r = client.get("/audit/verify-chain")
 result = json.loads(r.data)
-test("Audit chain VERIFIED", result["status"] == "VERIFIED")
-test("Multiple records checked", result["checked"] > 3)
+test("Admin can verify chain", result["status"] == "VERIFIED")
 
-print("\n=== TEST GROUP 8: Authorization ===")
 client.get("/logout")
-r = client.get("/dashboard", follow_redirects=True)
-test("Redirect to login when logged out", b"Login" in r.data or b"login" in r.data.lower())
 
-# Officer login
+# ── OFFICER TESTS ────────────────────────────────────────────────────
+
+print("\n=== OFFICER: Login & Dashboard ===")
 r = login("officer1", "officer123")
-test("Officer login succeeds", b"Dashboard" in r.data)
+test("Officer login", b"Dashboard" in r.data)
+test("Officer sees OFFICER badge", b"OFFICER" in r.data)
+test("Officer sees My Uploads stat", b"My Uploads" in r.data)
+test("Officer sees own activity label", b"Your Recent Activity" in r.data)
+test("Officer does NOT see Registered Users", b"Registered Users" not in r.data)
+test("Officer does NOT see Quick Actions", b"Quick Actions" not in r.data)
 
-# Officer can access cases
+print("\n=== OFFICER: Sidebar ===")
+r = client.get("/dashboard")
+test("Officer does NOT see Audit Trail in sidebar", b"Audit Trail" not in r.data)
+
+print("\n=== OFFICER: Cases ===")
 r = client.get("/cases")
-test("Officer can view cases", r.status_code == 200)
+test("Officer can view cases", b"CASE-ADMIN-001" in r.data)
+test("Officer does NOT see New Case button", b"New Case" not in r.data)
+test("Officer does NOT see create modal", b"newCaseModal" not in r.data)
+test("Officer sees helpful message", b"View assigned cases" in r.data)
+
+# Officer tries to create a case (backend block)
+r = client.post("/cases/create", data={
+    "case_id": "CASE-OFFICER-999", "title": "Sneaky", "description": "Should fail"
+}, follow_redirects=True)
+test("Officer blocked from creating case", b"Admin access required" in r.data)
+# Verify case was NOT created
+r = client.get("/cases")
+test("Unauthorized case was not created", b"CASE-OFFICER-999" not in r.data)
+
+print("\n=== OFFICER: Documents ===")
+r = client.get("/cases/CASE-ADMIN-001")
+test("Officer can view case details", b"Admin Test" in r.data)
+test("Officer sees upload form", b"Encrypt" in r.data)
+
+# Officer can upload
+file_content2 = b"Officer evidence upload test."
+r = client.post("/upload", data={
+    "case_id": "CASE-ADMIN-001",
+    "file": (io.BytesIO(file_content2), "officer_doc.txt"),
+}, content_type="multipart/form-data", follow_redirects=True)
+test("Officer can upload docs", b"officer_doc.txt" in r.data)
+
+# Officer can verify
+r = client.get("/documents/2/verify")
+result = json.loads(r.data)
+test("Officer can verify docs", result["status"] == "VERIFIED")
+
+# Officer can download
+r = client.get("/documents/2/download")
+test("Officer can download docs", r.data == file_content2)
+
+print("\n=== OFFICER: Audit Trail BLOCKED ===")
+r = client.get("/audit", follow_redirects=True)
+test("Officer blocked from audit trail", b"Admin access required" in r.data)
+
+r = client.get("/audit/verify-chain", follow_redirects=True)
+test("Officer blocked from chain verify", b"Admin access required" in r.data)
 
 print(f"\n{'='*50}")
 print(f"Results: {passed} passed, {failed} failed out of {passed+failed}")

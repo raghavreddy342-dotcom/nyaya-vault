@@ -7,9 +7,11 @@
         <div class="page-header flex justify-between items-center">
             <div>
                 <h1>Cases</h1>
-                <p>Manage legal cases and their evidence</p>
+                <p>{% if session.role == 'admin' %}Manage legal cases and their evidence{% else %}View assigned cases and upload evidence{% endif %}</p>
             </div>
+            {% if session.role == 'admin' %}
             <button class="btn btn-primary" onclick="openModal('newCaseModal')">➕ New Case</button>
+            {% endif %}
         </div>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -32,12 +34,17 @@
             {% endfor %}
         </div>
         {% else %}
-        <div class="card"><p class="text-muted">No cases yet. Create one to get started.</p></div>
+        <div class="card">
+            <p class="text-muted">
+                {% if session.role == 'admin' %}No cases yet. Create one to get started.{% else %}No cases available. Contact an admin to create cases.{% endif %}
+            </p>
+        </div>
         {% endif %}
     </main>
 </div>
 
-<!-- New Case Modal -->
+{% if session.role == 'admin' %}
+<!-- New Case Modal (admin only) -->
 <div class="modal-backdrop" id="newCaseModal">
     <div class="modal">
         <h2>➕ Create New Case</h2>
@@ -61,4 +68,5 @@
         </form>
     </div>
 </div>
+{% endif %}
 {% endblock %}

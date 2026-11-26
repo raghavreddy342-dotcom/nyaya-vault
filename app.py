@@ -114,14 +114,34 @@ def dashboard():
     db = get_db()
     total_cases = db.execute("SELECT COUNT(*) as c FROM cases").fetchone()["c"]
     total_docs = db.execute("SELECT COUNT(*) as c FROM documents").fetchone()["c"]
-    recent = db.execute(
-        "SELECT * FROM audit_log ORDER BY id DESC LIMIT 10"
-    ).fetchall()
+
+    if session.get("role") == "admin":
+        recent = db.execute(
+            "SELECT * FROM audit_log ORDER BY id DESC LIMIT 10"
+        ).fetchall()
+        total_users = db.execute("SELECT COUNT(*) as c FROM users").fetchone()["c"]
+    else:
+        # Officers see only their own recent activity
+        recent = db.execute(
+            "SELECT * FROM audit_log WHERE username = ? ORDER BY id DESC LIMIT 10",
+            (session["username"],),
+        ).fetchall()
+        total_users = None
+        pending_verifications = None
+
+    # Officer-specific stats
+    my_uploads = db.execute(
+        "SELECT COUNT(*) as c FROM documents WHERE uploaded_by = ?",
+        (session["username"],),
+    ).fetchone()["c"]
+
     db.close()
     return render_template(
         "dashboard.html",
         total_cases=total_cases,
         total_docs=total_docs,
+        total_users=total_users,
+        my_uploads=my_uploads,
         recent_activities=recent,
     )
 
@@ -139,6 +159,7 @@ def cases():
 
 @app.route("/cases/create", methods=["POST"])
 @login_required
+@admin_required
 def create_case():
     case_id = request.form.get("case_id", "").strip()
     title = request.form.get("title", "").strip()
@@ -300,6 +321,7 @@ def verify_document(doc_id):
 
 @app.route("/audit")
 @login_required
+@admin_required
 def audit():
     db = get_db()
     logs = db.execute("SELECT * FROM audit_log ORDER BY id DESC").fetchall()
@@ -309,6 +331,7 @@ def audit():
 
 @app.route("/audit/verify-chain")
 @login_required
+@admin_required
 def verify_audit_chain():
     """Verify the integrity of the entire audit chain."""
     db = get_db()
