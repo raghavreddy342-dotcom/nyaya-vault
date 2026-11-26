@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Cases – NYAYA VAULT{% endblock %}
+{% block body %}
+<div class="app-layout">
+    {% include "partials/sidebar.html" %}
+    <main class="main-content">
+        <div class="page-header flex justify-between items-center">
+            <div>
+                <h1>Cases</h1>
+                <p>Manage legal cases and their evidence</p>
+            </div>
+            <button class="btn btn-primary" onclick="openModal('newCaseModal')">➕ New Case</button>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for cat, msg in messages %}
+        <div class="flash flash-{{ cat }}">{{ msg }}</div>
+        {% endfor %}
+        {% endwith %}
+
+        {% if cases %}
+        <div class="case-grid">
+            {% for c in cases %}
+            <a href="{{ url_for('case_details', case_id=c.case_id) }}" style="text-decoration:none;color:inherit;">
+                <div class="case-card">
+                    <div class="case-id">{{ c.case_id }}</div>
+                    <h3>{{ c.title }}</h3>
+                    <div class="case-desc">{{ c.description or 'No description' }}</div>
+                    <div class="mt-1 text-sm text-muted">Created by {{ c.created_by }} · {{ c.created_at }}</div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="card"><p class="text-muted">No cases yet. Create one to get started.</p></div>
+        {% endif %}
+    </main>
+</div>
+
+<!-- New Case Modal -->
+<div class="modal-backdrop" id="newCaseModal">
+    <div class="modal">
+        <h2>➕ Create New Case</h2>
+        <form method="POST" action="{{ url_for('create_case') }}">
+            <div class="form-group">
+                <label>Case ID</label>
+                <input type="text" name="case_id" placeholder="e.g. CASE-2026-004" required>
+            </div>
+            <div class="form-group">
+                <label>Title</label>
+                <input type="text" name="title" placeholder="Case title" required>
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <textarea name="description" placeholder="Brief description of the case"></textarea>
+            </div>
+            <div class="flex gap-1" style="justify-content:flex-end;">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('newCaseModal')">Cancel</button>
+                <button type="submit" class="btn btn-primary">Create Case</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

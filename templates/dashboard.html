@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Dashboard – NYAYA VAULT{% endblock %}
+{% block body %}
+<div class="app-layout">
+    {% include "partials/sidebar.html" %}
+    <main class="main-content">
+        <div class="page-header">
+            <h1>Dashboard</h1>
+            <p>Welcome back, <strong>{{ session.username }}</strong> ({{ session.role }})</p>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for cat, msg in messages %}
+        <div class="flash flash-{{ cat }}">{{ msg }}</div>
+        {% endfor %}
+        {% endwith %}
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="icon">📁</div>
+                <div class="value">{{ total_cases }}</div>
+                <div class="label">Total Cases</div>
+            </div>
+            <div class="stat-card">
+                <div class="icon">📄</div>
+                <div class="value">{{ total_docs }}</div>
+                <div class="label">Total Documents</div>
+            </div>
+            <div class="stat-card">
+                <div class="icon">🔒</div>
+                <div class="value">AES-256</div>
+                <div class="label">Encryption Standard</div>
+            </div>
+            <div class="stat-card">
+                <div class="icon">🛡️</div>
+                <div class="value">SHA-256</div>
+                <div class="label">Hash Algorithm</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>📋 Recent Activity</h2>
+            {% if recent_activities %}
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>User</th>
+                            <th>Action</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in recent_activities %}
+                        <tr>
+                            <td class="text-sm text-muted">{{ log.timestamp }}</td>
+                            <td>{{ log.username }}</td>
+                            <td><span class="badge badge-info">{{ log.action }}</span></td>
+                            <td class="text-sm">{{ log.details or '–' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted">No recent activity.</p>
+            {% endif %}
+        </div>
+    </main>
+</div>
+{% endblock %}

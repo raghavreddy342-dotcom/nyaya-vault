@@ -1,0 +1,20 @@
+<aside class="sidebar">
+    <div class="sidebar-brand">
+        <h2>🛡️ NYAYA <span class="accent">VAULT</span></h2>
+    </div>
+    <nav>
+        <a href="{{ url_for('dashboard') }}" class="{% if request.endpoint == 'dashboard' %}active{% endif %}">
+            📊 Dashboard
+        </a>
+        <a href="{{ url_for('cases') }}" class="{% if request.endpoint in ('cases', 'case_details') %}active{% endif %}">
+            📁 Cases
+        </a>
+        <a href="{{ url_for('audit') }}" class="{% if request.endpoint == 'audit' %}active{% endif %}">
+            📋 Audit Trail
+        </a>
+    </nav>
+    <div class="sidebar-footer">
+        <div>{{ session.username }} · <span class="badge badge-success">{{ session.role }}</span></div>
+        <a href="{{ url_for('logout') }}" style="display:inline-block;margin-top:.5rem;">🚪 Logout</a>
+    </div>
+</aside>

@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Login – NYAYA VAULT{% endblock %}
+{% block body %}
+<div class="login-container">
+    <div class="login-box">
+        <div class="shield">🛡️</div>
+        <h1>NYAYA <span style="color:var(--accent)">VAULT</span></h1>
+        <p class="subtitle">Secure Legal Evidence Management</p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for cat, msg in messages %}
+        <div class="flash flash-{{ cat }}">{{ msg }}</div>
+        {% endfor %}
+        {% endwith %}
+
+        <form method="POST">
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" name="username" placeholder="Enter username" required autofocus>
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" name="password" placeholder="Enter password" required>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;margin-top:.5rem;">
+                🔐 Secure Login
+            </button>
+        </form>
+
+        <div class="mt-2 text-sm text-muted" style="text-align:center;">
+            <strong>Demo Credentials</strong><br>
+            Admin: <code>admin</code> / <code>admin123</code><br>
+            Officer: <code>officer1</code> / <code>officer123</code>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}{{ case.title }} – NYAYA VAULT{% endblock %}
+{% block body %}
+<div class="app-layout">
+    {% include "partials/sidebar.html" %}
+    <main class="main-content">
+        <div class="page-header">
+            <p><a href="{{ url_for('cases') }}">← Back to Cases</a></p>
+            <h1>{{ case.title }}</h1>
+            <p><span class="badge badge-info">{{ case.case_id }}</span> · {{ case.description or 'No description' }}</p>
+            <p class="text-sm text-muted mt-1">Created by {{ case.created_by }} · {{ case.created_at }}</p>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for cat, msg in messages %}
+        <div class="flash flash-{{ cat }}">{{ msg }}</div>
+        {% endfor %}
+        {% endwith %}
+
+        <!-- Upload form -->
+        <div class="card">
+            <h2>📤 Upload Document</h2>
+            <form method="POST" action="{{ url_for('upload_document') }}" enctype="multipart/form-data">
+                <input type="hidden" name="case_id" value="{{ case.case_id }}">
+                <div class="flex gap-2 items-center" style="flex-wrap:wrap;">
+                    <input type="file" name="file" accept=".pdf,.jpg,.jpeg,.png,.txt" required
+                           style="background:var(--bg-primary);border:1px solid var(--border);border-radius:8px;padding:.5rem;color:var(--text);flex:1;min-width:200px;">
+                    <button type="submit" class="btn btn-primary">🔒 Encrypt & Upload</button>
+                </div>
+                <p class="text-sm text-muted mt-1">Accepted: PDF, JPG, PNG, TXT (max 16 MB). Files are encrypted with AES-256-GCM.</p>
+            </form>
+        </div>
+
+        <!-- Documents -->
+        <div class="card">
+            <h2>📄 Documents ({{ documents|length }})</h2>
+            {% if documents %}
+            <div class="doc-grid">
+                {% for doc in documents %}
+                <div class="doc-card">
+                    <div class="doc-name">{{ doc.original_name }}</div>
+                    <div class="doc-meta">
+                        Type: {{ doc.file_type | upper }} · Size: {{ (doc.file_size / 1024) | round(1) }} KB<br>
+                        Uploaded by {{ doc.uploaded_by }} · {{ doc.uploaded_at }}
+                    </div>
+                    <div class="text-mono text-sm mb-2" style="color:var(--accent);">
+                        SHA-256: {{ doc.sha256_hash[:16] }}…
+                    </div>
+                    <div class="doc-actions">
+                        <a href="{{ url_for('download_document', doc_id=doc.id) }}" class="btn btn-secondary btn-sm">⬇ Download</a>
+                        <button class="btn btn-secondary btn-sm" onclick="verifyDocument({{ doc.id }}, this)">🔍 Verify</button>
+                    </div>
+                    <div id="verify-result-{{ doc.id }}" class="verify-result"></div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-muted">No documents uploaded yet.</p>
+            {% endif %}
+        </div>
+    </main>
+</div>
+{% endblock %}

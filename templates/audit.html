@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Audit Trail – NYAYA VAULT{% endblock %}
+{% block body %}
+<div class="app-layout">
+    {% include "partials/sidebar.html" %}
+    <main class="main-content">
+        <div class="page-header flex justify-between items-center">
+            <div>
+                <h1>Audit Trail</h1>
+                <p>Tamper-evident activity log with SHA-256 chain</p>
+            </div>
+            <button class="btn btn-primary" onclick="verifyAuditChain(this)">🔗 Verify Audit Chain</button>
+        </div>
+
+        <div id="chain-result" class="verify-result"></div>
+
+        {% if logs %}
+        <div class="card" style="margin-top:1rem;">
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Timestamp</th>
+                            <th>User</th>
+                            <th>Action</th>
+                            <th>Details</th>
+                            <th>Record Hash</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in logs %}
+                        <tr>
+                            <td>{{ log.id }}</td>
+                            <td class="text-sm text-muted">{{ log.timestamp }}</td>
+                            <td>{{ log.username }}</td>
+                            <td><span class="badge badge-info">{{ log.action }}</span></td>
+                            <td class="text-sm">{{ log.details or '–' }}</td>
+                            <td class="text-mono text-sm" style="color:var(--accent);">{{ log.record_hash[:16] }}…</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% else %}
+        <div class="card"><p class="text-muted">No audit records yet.</p></div>
+        {% endif %}
+    </main>
+</div>
+{% endblock %}
